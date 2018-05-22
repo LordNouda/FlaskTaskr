@@ -92,7 +92,7 @@ def tasks():
 
 @app.route('/add/', methods=['POST'])
 @login_required
-def new_tasks():
+def new_task():
     """Insert new task into the database."""
     g.db = connect_db()
     name = request.form['name']
