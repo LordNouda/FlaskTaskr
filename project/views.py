@@ -96,7 +96,7 @@ def new_task():
     """Insert new task into the database."""
     g.db = connect_db()
     name = request.form['name']
-    date = request.form['due_data']
+    date = request.form['due_date']
     priority = request.form['priority']
     if not name or not date or not priority:
         flash("All fields are required. Please try again.")
