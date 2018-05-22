@@ -88,7 +88,8 @@
           <td width="100px">{{ task.due_date }}</td>
           <td width="50px">{{ task.priority }}</td>
         <td>
-          <a href="{{ url_for('delete_entry', task_id = task.task_id) }}">Delete</a>
+          <a href="{{ url_for('delete_entry', task_id = task.task_id) }}">Delete</a>  -
+          <a href="{{ url_for('reopen', task_id = task.task_id) }}">Mark as Open</a>
         </td>
         </tr>
       {% endfor %}
