@@ -1,7 +1,14 @@
-#################
-# #  imports  # #
-#################
-
+###############################################################################
+#                                                                            ##
+#     imports                                                                ##
+#                                                                            ##
+#     ##### #     # ####   ###  ####  #####  ####                            ##
+#       #   ##   ## #   # #   # #   #   #   #                                ##
+#       #   # # # # ####  #   # ####    #    ###                             ##
+#       #   #  #  # #     #   # #  #    #       #                            ##
+#     ##### #     # #      ###  #   #   #   ####                             ##
+#                                                                            ##
+###############################################################################
 
 from functools import wraps
 from flask import Flask, flash, redirect, render_template, \
@@ -11,9 +18,17 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 
-################
-# #  config  # #
-################
+###############################################################################
+#                                                                            ##
+#     configuration                                                          ##
+#                                                                            ##
+#      ####  ###  #   # ##### #####  ####                                    ##
+#     #     #   # ##  # #       #   #                                        ##
+#     #     #   # # # # ###     #   # ###                                    ##
+#     #     #   # #  ## #       #   #   #                                    ##
+#      ####  ###  #   # #     #####  ###                                     ##
+#                                                                            ##
+###############################################################################
 
 
 app = Flask(__name__)
@@ -24,9 +39,17 @@ db = SQLAlchemy(app)
 from models import Task, User
 
 
-#################
-# #  helpers  # #
-#################
+###############################################################################
+#                                                                            ##
+#     helper functions                                                       ##
+#                                                                            ##
+#     #   # ##### #     ####  ##### ####   ####                              ##
+#     #   # #     #     #   # #     #   # #                                  ##
+#     ##### ###   #     ####  ###   ####   ###                               ##
+#     #   # #     #     #     #     #  #      #                              ##
+#     #   # ##### ##### #     ##### #   # ####                               ##
+#                                                                            ##
+###############################################################################
 
 
 def login_required(test):
@@ -61,10 +84,17 @@ def closed_tasks():
         Task).filter_by(status='0').order_by(Task.due_date.asc())
 
 
-################
-# #  routes  # #
-################
-
+###############################################################################
+#                                                                            ##
+#     routes                                                                 ##
+#                                                                            ##
+#     ####    ####  #    # ##### #####  ####                                 ##
+#     #   #  #    # #    #   #   #     #                                     ##
+#     ####   #    # #    #   #   ###    ###                                  ##
+#     #  #   #    # #    #   #   #         #                                 ##
+#     #   #   ####   ####    #   ##### ####                                  ##
+#                                                                            ##
+###############################################################################
 
 @app.route('/logout/')
 @login_required
@@ -72,6 +102,7 @@ def logout():
     """Log out a user."""
     session.pop('logged_in', None)
     session.pop('user_id', None)
+    session.pop('role', None)
     flash('Goodbye!')
     return redirect(url_for('login'))
 
@@ -87,6 +118,7 @@ def login():
             if user is not None and user.password == request.form['password']:
                 session['logged_in'] = True
                 session['user_id'] = user.id
+                session['role'] = user.role
                 flash('Welcome!')
                 return redirect(url_for('tasks'))
             else:
@@ -140,9 +172,14 @@ def new_task():
 def complete(task_id):
     """Mark given task as complete."""
     new_id = task_id
-    db.session.query(Task).filter_by(task_id=new_id).update({"status": "0"})
-    db.session.commit()
-    flash('The task was marked as complete. Nice.')
+    task = db.session.query(Task).filter_by(task_id=new_id)
+    if (session['user_id'] == task.first().user_id
+            or session['role'] == 'admin'):
+        task.update({"status": "0"})
+        db.session.commit()
+        flash('The task was marked as complete. Nice.')
+    else:
+        flash('You can only update tasks that belong to you.')
     return redirect(url_for('tasks'))
 
 
@@ -151,9 +188,14 @@ def complete(task_id):
 def reopen(task_id):
     """Mark given task as open."""
     new_id = task_id
-    db.session.query(Task).filter_by(task_id=new_id).update({"status": "1"})
-    db.session.commit()
-    flash('The task was marked as open.')
+    task = db.session.query(Task).filter_by(task_id=new_id)
+    if (session['user_id'] == task.first().user_id
+            or session['role'] == 'admin'):
+        task.update({"status": "1"})
+        db.session.commit()
+        flash('The task was marked as open.')
+    else:
+        flash('You can only update tasks that belong to you.')
     return redirect(url_for('tasks'))
 
 
@@ -162,9 +204,14 @@ def reopen(task_id):
 def delete_entry(task_id):
     """Delete given task."""
     new_id = task_id
-    db.session.query(Task).filter_by(task_id=new_id).delete()
-    db.session.commit()
-    flash('The task was deleted. Why not add a new one?')
+    task = db.session.query(Task).filter_by(task_id=new_id)
+    if (session['user_id'] == task.first().user_id
+            or session['role'] == 'admin'):
+        task.delete()
+        db.session.commit()
+        flash('The task was deleted. Why not add a new one?')
+    else:
+        flash('You can only delete tasks that belong to you.')
     return redirect(url_for('tasks'))
 
 

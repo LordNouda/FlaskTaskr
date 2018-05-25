@@ -1,5 +1,5 @@
 import os
-import unittest
+from unittest import TestCase, main
 
 from views import app, db
 from _config import basedir
@@ -8,8 +8,8 @@ from models import User
 TEST_DB = 'test.db'
 
 
-class AllTests(unittest.TestCase):
-    """Run all tests."""
+class UserTests(TestCase):
+    """Run User related tests."""
 
     ###########################################################################
     # #  setup and teardown                                                 # #
@@ -81,10 +81,10 @@ class AllTests(unittest.TestCase):
         )
 
     ###########################################################################
-    # #  all tests                                                          # #
+    # #  user tests                                                         # #
     ###########################################################################
 
-    def test_user_setup(self):
+    def test_user_can_register(self):
         """Test setup of user entry in database."""
         new_user = User("michael", "michael@mherman.org", "michaelherman")
         db.session.add(new_user)
@@ -100,7 +100,7 @@ class AllTests(unittest.TestCase):
         response = self.app.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertIn(
-            b'Please login to access your task list.',
+            b'Please sign in to access your task list',
             response.data
         )
 
@@ -165,96 +165,52 @@ class AllTests(unittest.TestCase):
     def test_not_logged_in_users_can_logout(self):
         """Test if not logged in users are redirected to the main page."""
         response = self.logout()
-        self.assertIn(b'Please login to access your task list.', response.data)
-
-    def test_logged_in_users_can_access_tasks_page(self):
-        """Test if logged in users can access tasks page."""
-        self.register(
-            'Fletcher', 'fletcher@realpython.com', 'python101', 'python101'
-        )
-        self.login('Fletcher', 'python101')
-        response = self.app.get('/tasks/')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Add a new task:', response.data)
-
-    def test_not_logged_in_users_cannot_access_tasks_page(self):
-        """Test fi not logged in users are redirected to main page."""
-        response = self.app.get('/tasks/', follow_redirects=True)
-        self.assertIn(b'You need to login first.', response.data)
-
-    def test_users_can_add_tasks(self):
-        """Test if users can create tasks."""
-        self.create_user('Michael', 'michael@realpython.com', 'python')
-        self.login('Michael', 'python')
-        self.app.get('/tasks/', follow_redirects=True)
-        response = self.create_task()
         self.assertIn(
-            b'New entry was successfully posted. Thanks.',
+            b'Please sign in to access your task list',
             response.data
         )
 
-    def test_users_cannot_add_tasks_when_error(self):
-        """Test if errors during task creation are caught."""
-        self.create_user('Michael', 'michael@realpython.com', 'python')
-        self.login('Michael', 'python')
-        self.app.get('/tasks/', follow_redirects=True)
+    def test_duplicate_user_registration_throws_error(self):
+        """Test if duplicate user registration throws an error."""
+        self.register(
+            'Fletcher', 'fletcher@realpython.com', 'python101', 'python101'
+        )
+        response = self.register(
+            'Fletcher', 'fletcher@realpython.com', 'python101', 'python101'
+        )
+        self.assertIn(
+            b'That username and/or email already exists.',
+            response.data
+        )
+
+    def test_user_login_field_errors(self):
+        """Test is user login field error throws an error."""
         response = self.app.post(
-            '/add/',
+            '/',
             data=dict(
-                name='Go to the bank.',
-                due_date='',
-                priority='1',
-                posted_date='02/05/2014',
-                status='1'
+                name='',
+                password='python101',
             ),
             follow_redirects=True
         )
         self.assertIn(b'This field is required.', response.data)
 
-    def test_users_can_complete_tasks(self):
-        """Test if users can check tasks as completed."""
-        self.create_user('Michael', 'michael@realpython.com', 'python')
-        self.login('Michael', 'python')
-        self.app.get('/tasks/', follow_redirects=True)
-        self.create_task()
-        response = self.app.get('/complete/1/', follow_redirects=True)
-        self.assertIn(b'The task was marked as complete. Nice.', response.data)
+    def test_string_representation_of_the_user_object(self):
+        """Test if the __repr__ method works as expected."""
+        db.session.add(User("Johnny", "john@doe.com", "johnny"))
+        db.session.commit()
+        users = db.session.query(User).all()
+        for user in users:
+            self.assertEqual(user.name, 'Johnny')
 
-    def test_users_can_reopen_tasks(self):
-        """Test if users can check tasks as open."""
-        self.create_user('Michael', 'michael@realpython.com', 'python')
-        self.login('Michael', 'python')
-        self.app.get('/tasks/', follow_redirects=True)
-        self.create_task()
-        response = self.app.get('/reopen/1/', follow_redirects=True)
-        self.assertIn(b'The task was marked as open.', response.data)
-
-    def test_users_can_delete_tasks(self):
-        """Test if users can delete tasks."""
-        self.create_user('Michael', 'michael@realpython.com', 'python')
-        self.login('Michael', 'python')
-        self.app.get('/tasks/', follow_redirects=True)
-        self.create_task()
-        response = self.app.get('/delete/1/', follow_redirects=True)
-        self.assertIn(b'The task was deleted.', response.data)
-
-    def test_users_cannot_complete_tasks_that_are_not_created_by_them(self):
-        """Test if users can not completer other's tasks."""
-        self.create_user('Michael', 'michael@realpython.com', 'python')
-        self.login('Michael', 'python')
-        self.app.get('/tasks/', follow_redirects=True)
-        self.create_task()
-        self.logout()
-        self.create_user('Fletcher', 'fletcher@realpython.com', 'python101')
-        self.login('Fletcher', 'python101')
-        self.app.get('/tasks/', follow_redirects=True)
-        response = self.app.get('/complete/1/', follow_redirects=True)
-        self.assertNotIn(
-            b'The task was marked as complete. Nice.',
-            response.data
-        )
-# END class AllTests(unittest.TestCase)
+    def test_default_user_role(self):
+        """Test if a new user is created with role 'user'."""
+        db.session.add(User("Johnny", "john@doe.com", "johnny"))
+        db.session.commit()
+        users = db.session.query(User).all()
+        for user in users:
+            self.assertEqual(user.role, 'user')
 
 
 if __name__ == '__main__':
-    unittest.main()
+    main()
