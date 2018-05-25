@@ -1,9 +1,9 @@
 import os
 from unittest import TestCase, main
 
-from views import app, db
-from _config import basedir
-from models import User
+from project import app, db
+from project._config import basedir
+from project.models import User
 
 TEST_DB = 'test.db'
 
@@ -53,7 +53,8 @@ class UserTests(TestCase):
                 email=email,
                 password=password,
                 confirm=confirm
-            )
+            ),
+            follow_redirects=True
         )
 
     def logout(self):
@@ -107,7 +108,10 @@ class UserTests(TestCase):
     def test_users_cannot_login_unless_registered(self):
         """Test if unregistered users cannot log in."""
         response = self.login('foo', 'bar')
-        self.assertIn(b'Invalid Credentials. Please try again.', response.data)
+        self.assertIn(
+            b'Please sign in to access your task list',
+            response.data
+        )
 
     def test_user_can_login(self):
         """Test if user can successfully login."""
@@ -119,7 +123,7 @@ class UserTests(TestCase):
         """Test if bad data prevents login."""
         self.register('Michael', 'michael@realpython.com', 'python', 'python')
         response = self.login('alert("alert box!");', 'foo')
-        self.assertIn(b'Invalid Credentials. Please try again.', response.data)
+        self.assertIn(b'Invalid username or password.', response.data)
 
     def test_form_is_present_on_register_page(self):
         """Test if a form is present on the register page."""
@@ -149,7 +153,7 @@ class UserTests(TestCase):
             'Michael', 'michael@realpython.com', 'python', 'python'
         )
         self.assertIn(
-            b'That username and/or email already exists.',
+            b'That username and/or email already exist',
             response.data
         )
 
@@ -179,7 +183,7 @@ class UserTests(TestCase):
             'Fletcher', 'fletcher@realpython.com', 'python101', 'python101'
         )
         self.assertIn(
-            b'That username and/or email already exists.',
+            b'That username and/or email already exist.',
             response.data
         )
 
