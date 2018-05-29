@@ -1,7 +1,7 @@
 import os
 from unittest import TestCase, main
 
-from project import app, db
+from project import app, db, bcrypt
 from project._config import basedir
 from project.models import User
 
@@ -19,10 +19,13 @@ class UserTests(TestCase):
         """Set up test scenario."""
         app.config['TESTING'] = True
         app.config['WTF_CSRF_ENABLED'] = False
+        app.config['DEBUG'] = False
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + \
             os.path.join(basedir, TEST_DB)
         self.app = app.test_client()
         db.create_all()
+
+        self.assertEqual(app.debug, False)
 
     def tearDown(self):
         """Tear down test scenario."""
@@ -63,7 +66,11 @@ class UserTests(TestCase):
 
     def create_user(self, name, email, password):
         """Create a user."""
-        new_user = User(name=name, email=email, password=password)
+        new_user = User(
+            name=name,
+            email=email,
+            password=bcrypt.generate_password_hash(password)
+        )
         db.session.add(new_user)
         db.session.commit()
 
@@ -87,7 +94,11 @@ class UserTests(TestCase):
 
     def test_user_can_register(self):
         """Test setup of user entry in database."""
-        new_user = User("michael", "michael@mherman.org", "michaelherman")
+        new_user = User(
+            "michael",
+            "michael@mherman.org",
+            bcrypt.generate_password_hash('michaelherman')
+        )
         db.session.add(new_user)
         db.session.commit()
         test = db.session.query(User).all()
@@ -214,6 +225,15 @@ class UserTests(TestCase):
         users = db.session.query(User).all()
         for user in users:
             self.assertEqual(user.role, 'user')
+
+    def test_task_template_displays_logged_in_user_name(self):
+        """Test if the user name is displayed correctly."""
+        self.register(
+            'Fletcher', 'fletcher@realpython.com', 'python101', 'python101'
+        )
+        self.login('Fletcher', 'python101')
+        response = self.app.get('/tasks/', follow_redirects=True)
+        self.assertIn(b'Fletcher', response.data)
 
 
 if __name__ == '__main__':

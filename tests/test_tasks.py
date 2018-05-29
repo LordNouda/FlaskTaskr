@@ -1,7 +1,7 @@
 import os
 from unittest import TestCase, main
 
-from project import app, db
+from project import app, db, bcrypt
 from project._config import basedir
 from project.models import Task, User
 
@@ -19,10 +19,13 @@ class TasksTests(TestCase):
         """Set up test scenario."""
         app.config['TESTING'] = True
         app.config['WTF_CSRF_ENABLED'] = False
+        app.config['DEBUG'] = False
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + \
             os.path.join(basedir, TEST_DB)
         self.app = app.test_client()
         db.create_all()
+
+        self.assertEqual(app.debug, False)
 
     def tearDown(self):
         """Tear down test scenario."""
@@ -71,7 +74,11 @@ class TasksTests(TestCase):
 
     def create_user(self, name, email, password):
         """Create a user."""
-        new_user = User(name=name, email=email, password=password)
+        new_user = User(
+            name=name,
+            email=email,
+            password=bcrypt.generate_password_hash(password)
+        )
         db.session.add(new_user)
         db.session.commit()
 
@@ -90,7 +97,7 @@ class TasksTests(TestCase):
         new_user = User(
             name='Superman',
             email='admin@realpython.com',
-            password='allpowerful',
+            password=bcrypt.generate_password_hash('allpowerful'),
             role='admin'
         )
         db.session.add(new_user)
@@ -264,6 +271,52 @@ class TasksTests(TestCase):
         tasks = db.session.query(Task).all()
         for task in tasks:
             self.assertEqual(task.name, 'Run around in circles')
+
+    def test_users_cannot_see_task_modify_links_for_tasks_not_created_by_them(self):
+        """Users shouldn't be able to see task modify links for tasks not created by them."""
+        self.register('Michael', 'michael@realpython.com', 'python', 'python')
+        self.login('Michael', 'python')
+        self.app.get('/tasks/', follow_redirects=True)
+        self.create_task()
+        self.logout()
+        self.register(
+            'Fletcher', 'fletcher@realpython.com', 'python101', 'python101'
+        )
+        response = self.login('Fletcher', 'python101')
+        self.app.get('/tasks/', follow_redirects=True)
+        self.assertNotIn(b'Mark as complete', response.data)
+        self.assertNotIn(b'Delete', response.data)
+
+    def test_users_can_see_task_modify_links_for_tasks_created_by_them(self):
+        """Users should see task modify links for tasks created by them."""
+        self.register('Michael', 'michael@realpython.com', 'python', 'python')
+        self.login('Michael', 'python')
+        self.app.get('/tasks/', follow_redirects=True)
+        self.create_task()
+        self.logout()
+        self.register(
+            'Fletcher', 'fletcher@realpython.com', 'python101', 'python101'
+        )
+        self.login('Fletcher', 'python101')
+        self.app.get('/tasks/', follow_redirects=True)
+        response = self.create_task()
+        self.assertIn(b'complete/2/', response.data)
+
+    def test_admin_users_can_see_task_modify_links_for_all_tasks(self):
+        """Admin users should see task modify links for all tasks."""
+        self.register('Michael', 'michael@realpython.com', 'python', 'python')
+        self.login('Michael', 'python')
+        self.app.get('/tasks/', follow_redirects=True)
+        self.create_task()
+        self.logout()
+        self.create_admin_user()
+        self.login('Superman', 'allpowerful')
+        self.app.get('/tasks/', follow_redirects=True)
+        response = self.create_task()
+        self.assertIn(b'complete/1/', response.data)
+        self.assertIn(b'delete/1/', response.data)
+        self.assertIn(b'complete/2/', response.data)
+        self.assertIn(b'delete/2/', response.data)
 
 
 if __name__ == "__main__":
