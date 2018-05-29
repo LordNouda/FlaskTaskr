@@ -6,7 +6,17 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 DATABASE = 'flasktaskr.db'
 WTF_CSRF_ENABLED = True
 SECRET_KEY = 'V7EkUDirDgT8wSiTqmT2rPurysy9rtfE'
-DEBUG = False
+###############################################################################
+#                                                                            ##
+#     ####  ##### ####  #   #  ####     ##### #      ###   ####              ##
+#     #   # #     #   # #   # #         #     #     #   # #                  ##
+#     #   # ###   ####  #   # # ###     ###   #     ##### # ###              ##
+#     #   # #     #   # #   # #   #     #     #     #   # #   #              ##
+#     ####  ##### ####   ###   ###      #     ##### #   #  ###               ##
+#                                                                            ##
+DEBUG = True
+#                                                                            ##
+###############################################################################
 
 # define the full path for the database
 DATABASE_PATH = os.path.join(basedir, DATABASE)

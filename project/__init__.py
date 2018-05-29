@@ -32,11 +32,20 @@ app.config.from_pyfile("_config.py")
 bcrypt = Bcrypt(app)
 db = SQLAlchemy(app)
 
+# blueprints = ['users', 'tasks', 'api']
+# from werkzeug.utils import import_string
+# for bp_str in blueprints:
+#   bp = import_string('project.' + bp_str + '.views')
+#   app.register_blueprint(bp)
+# this should work as well, especially with many blueprints
+
 from project.users.views import users_blueprint
 from project.tasks.views import tasks_blueprint
+from project.api.views import api_blueprint
 
 app.register_blueprint(users_blueprint)
 app.register_blueprint(tasks_blueprint)
+app.register_blueprint(api_blueprint)
 
 
 ###############################################################################

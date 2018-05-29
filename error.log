@@ -1,2 +1,8 @@
 
 404 error at 29-05-2018 09:32:35: http://localhost:5000/where
+404 error at 29-05-2018 10:26:57: http://localhost/api/v1/tasks/
+404 error at 29-05-2018 10:26:58: http://localhost/this-route-does-not-exist/
+404 error at 29-05-2018 10:50:38: http://localhost/api/v1/tasks/2
+404 error at 29-05-2018 10:52:14: http://localhost/api/v1/tasks/2
+404 error at 29-05-2018 10:52:47: http://localhost/api/v1/tasks/2
+404 error at 29-05-2018 11:10:27: http://localhost/this-route-does-not-exist/
