@@ -97,6 +97,11 @@ class MainTests(TestCase):
         except ValueError:
             pass
 
+    def test_index(self):
+        """Ensure flask was set up correctly."""
+        response = self.app.get('/', content_type='html/text')
+        self.assertEqual(200, response.status_code)
+
 
 if __name__ == '__main__':
     main()
